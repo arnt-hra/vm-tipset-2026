@@ -93,19 +93,20 @@
   .score-inputs input:focus { border-color: var(--lk-teal); }
   .score-dash { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--lk-grey-mid); }
 
-  .bracket-wrap { overflow-x: auto; padding-bottom: 12px; }
-  .bracket { display: flex; gap: 0; min-width: 700px; align-items: stretch; }
-  .bracket-round { display: flex; flex-direction: column; flex: 1; min-width: 160px; }
-  .round-label { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1px; color: var(--lk-teal); text-align: center; padding: 8px 4px; background: var(--lk-off-white); border-radius: 6px 6px 0 0; border: 1px solid var(--lk-grey-light); border-bottom: none; margin: 0 4px; }
-  .round-matches { display: flex; flex-direction: column; justify-content: space-around; flex: 1; padding: 4px; border-left: 1px solid var(--lk-grey-light); }
-  .ko-match { background: #fff; border: 1.5px solid var(--lk-grey-light); border-radius: 8px; margin: 4px; padding: 10px 12px; transition: border-color .18s; }
-  .ko-match.filled { border-color: var(--lk-teal-mid); }
-  .ko-team { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--lk-text); }
-  .ko-team select { border: 1.5px solid var(--lk-grey-light); border-radius: 5px; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--lk-text); padding: 2px 6px; flex: 1; outline: none; background: var(--lk-off-white); transition: border-color .18s; cursor: pointer; }
-  .ko-team select:focus { border-color: var(--lk-teal); }
-  .ko-score-input { width: 34px; height: 28px; text-align: center; font-size: 14px; font-weight: 700; border: 1.5px solid var(--lk-grey-light); border-radius: 5px; margin-left: auto; font-family: 'Inter', sans-serif; color: var(--lk-teal-dark); outline: none; transition: border-color .18s; }
-  .ko-score-input:focus { border-color: var(--lk-teal); }
-  .ko-divider { height: 1px; background: var(--lk-grey-light); margin: 2px 0; }
+  .bracket-wrap { overflow-x: auto; padding-bottom: 16px; }
+  .bracket { display: flex; gap: 16px; min-width: 1050px; align-items: flex-start; }
+  .bracket-round { display: flex; flex-direction: column; flex: 1; min-width: 190px; }
+  .round-label { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; color: #fff; text-align: center; padding: 10px 8px; background: var(--lk-teal); border-radius: 8px 8px 0 0; }
+  .round-matches { display: flex; flex-direction: column; gap: 12px; padding: 0; }
+  .ko-match { background: #fff; border: 1.5px solid var(--lk-grey-light); border-radius: 0 0 8px 8px; padding: 12px 14px; transition: border-color .18s; }
+  .ko-match + .ko-match { border-radius: 8px; margin-top: 0; }
+  .ko-match.filled { border-color: var(--lk-teal-mid); background: #f7fcfd; }
+  .ko-team { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+  .ko-team select { border: 1.5px solid var(--lk-grey-light); border-radius: 6px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--lk-text); padding: 6px 8px; flex: 1; min-width: 0; width: 100%; outline: none; background: var(--lk-off-white); transition: border-color .18s; cursor: pointer; }
+  .ko-team select:focus { border-color: var(--lk-teal); background: #fff; }
+  .ko-score-input { width: 40px; height: 34px; text-align: center; font-size: 15px; font-weight: 700; border: 1.5px solid var(--lk-grey-light); border-radius: 6px; flex-shrink: 0; font-family: 'Inter', sans-serif; color: var(--lk-teal-dark); outline: none; transition: border-color .18s; background: var(--lk-off-white); }
+  .ko-score-input:focus { border-color: var(--lk-teal); background: #fff; }
+  .ko-divider { height: 1px; background: var(--lk-grey-light); margin: 4px 0; }
 
   .bonus-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
   .bonus-card { background: var(--lk-off-white); border: 1.5px solid var(--lk-grey-light); border-radius: 10px; padding: 18px; }
@@ -569,37 +570,50 @@ function buildKnockoutBracket() {
   KO_ROUNDS.forEach(round => {
     const col = document.createElement('div');
     col.className = 'bracket-round';
-    const lbl = document.createElement('div');
-    lbl.className = 'round-label';
-    lbl.textContent = round.label;
-    col.appendChild(lbl);
+
     const matchWrap = document.createElement('div');
     matchWrap.className = 'round-matches';
 
     for (let i = 0; i < round.slots; i++) {
       const slot = (preds[round.id] || {})[i] || {};
       const adminSlot = (adminKo[round.id] || {})[i] || {};
+
+      // Wrapper: label on top, match card below
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'margin-bottom:0;';
+
+      // Label bar (teal header for each match block)
+      const lbl = document.createElement('div');
+      lbl.style.cssText = `font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;
+        color:#fff;text-align:center;padding:8px 10px;
+        background:var(--lk-teal);border-radius:8px 8px 0 0;`;
+      lbl.textContent = round.slots > 1 ? `${round.label} – Kamp ${i+1}` : round.label;
+      wrapper.appendChild(lbl);
+
       const ko = document.createElement('div');
       ko.className = 'ko-match' + (slot.team1 || slot.team2 ? ' filled' : '');
+      ko.style.borderRadius = '0 0 8px 8px';
+
       const opts1 = TEAM_LIST.map(t => `<option value="${t.key}" ${slot.team1===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
       const opts2 = TEAM_LIST.map(t => `<option value="${t.key}" ${slot.team2===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
       ko.innerHTML = `
         <div class="ko-team">
           <select id="ko_t1_${round.id}_${i}" onchange="this.closest('.ko-match').classList.add('filled')">
-            <option value="">– Hjemmelag –</option>${opts1}
+            <option value="">– Lag 1 –</option>${opts1}
           </select>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="0" value="${slot.score1!==undefined?slot.score1:''}" id="ko_s1_${round.id}_${i}">
+          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–" value="${slot.score1!==undefined?slot.score1:''}" id="ko_s1_${round.id}_${i}">
         </div>
         <div class="ko-divider"></div>
         <div class="ko-team">
           <select id="ko_t2_${round.id}_${i}" onchange="this.closest('.ko-match').classList.add('filled')">
-            <option value="">– Bortelag –</option>${opts2}
+            <option value="">– Lag 2 –</option>${opts2}
           </select>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="0" value="${slot.score2!==undefined?slot.score2:''}" id="ko_s2_${round.id}_${i}">
+          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–" value="${slot.score2!==undefined?slot.score2:''}" id="ko_s2_${round.id}_${i}">
         </div>
         ${adminSlot.winner ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
       `;
-      matchWrap.appendChild(ko);
+      wrapper.appendChild(ko);
+      matchWrap.appendChild(wrapper);
     }
     col.appendChild(matchWrap);
     bracket.appendChild(col);
