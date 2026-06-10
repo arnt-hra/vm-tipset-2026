@@ -260,11 +260,8 @@
     <input type="text" id="reg-name" placeholder="Ola Nordmann" autocomplete="off">
   </div>
   <button class="btn-primary" onclick="registerPlayer()">🚀 Meld meg på!</button>
-  <div style="margin-top:14px;font-size:12px;color:var(--lk-grey-mid)">
-    Allerede registrert?
-    <button style="background:none;border:none;color:var(--lk-teal);font-weight:600;cursor:pointer;font-size:12px" onclick="showSwitchPlayer()">Bytt spiller</button>
-    &nbsp;|&nbsp;
-    <button style="background:none;border:none;color:var(--lk-grey-mid);font-weight:600;cursor:pointer;font-size:12px" onclick="showAdminLogin()">Admin</button>
+  <div style="margin-top:14px;font-size:12px;text-align:right;">
+    <button style="background:none;border:none;color:var(--lk-grey-mid);font-weight:600;cursor:pointer;font-size:11px" onclick="showAdminLogin()">Admin</button>
   </div>
 </div>
 
@@ -684,7 +681,10 @@ async function registerPlayer() {
   const name = document.getElementById('reg-name').value.trim();
   if (!name) { showToast('Skriv inn navnet ditt 👆'); return; }
 
-  // Sjekk om navn allerede finnes
+  // Reload fresh from Supabase first to catch all registered players
+  await loadFromSupabase();
+
+  // Check if name already exists (case-insensitive)
   const existing = state.players.find(p => p.name.toLowerCase() === name.toLowerCase());
   if (existing) {
     state.currentPlayer = existing.id;
@@ -694,6 +694,7 @@ async function registerPlayer() {
     return;
   }
 
+  // New player
   const id = 'p_' + Date.now();
   const player = { id, name };
   state.players.push(player);
