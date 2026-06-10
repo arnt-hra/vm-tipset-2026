@@ -291,14 +291,22 @@
   </div>
 
   <div class="section" id="section-sluttspill">
-    <div class="card">
-      <div class="card-title"><span class="icon">🏆</span> Sluttspill – Velg vinnere</div>
-      <div class="bracket-wrap">
-        <div class="bracket" id="knockout-bracket"></div>
-      </div>
-      <div class="save-bar">
-        <span class="save-status" id="ko-save-status"></span>
-        <button class="btn-save" onclick="saveKnockoutPredictions()">💾 Lagre tippene</button>
+    <div id="ko-locked-banner" class="card" style="text-align:center;padding:48px 24px;display:none;">
+      <div style="font-size:52px;margin-bottom:16px;">🔒</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--lk-teal-dark);letter-spacing:1px;margin-bottom:8px;">Sluttspillet er ikke klart ennå</div>
+      <div style="font-size:14px;color:var(--lk-grey-mid);margin-bottom:24px;">Sluttspill-tipsene åpner når alle grupper er ferdige – rundt 28. juni</div>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;" id="ko-countdown"></div>
+    </div>
+    <div id="ko-open-panel" style="display:none;">
+      <div class="card">
+        <div class="card-title"><span class="icon">🏆</span> Sluttspill – Tipp vinnere</div>
+        <div class="bracket-wrap">
+          <div class="bracket" id="knockout-bracket"></div>
+        </div>
+        <div class="save-bar">
+          <span class="save-status" id="ko-save-status"></span>
+          <button class="btn-save" onclick="saveKnockoutPredictions()">💾 Lagre tippene</button>
+        </div>
       </div>
     </div>
   </div>
@@ -421,12 +429,15 @@ const GROUPS = [
 ];
 
 const KO_ROUNDS = [
-  { id:'r32', label:'Sekstendelsfinale', slots:4 },
+  { id:'r32', label:'Sekstendelsfinale', slots:8 },
   { id:'r16', label:'Åttendelsfinale', slots:4 },
   { id:'qf', label:'Kvartfinale', slots:2 },
   { id:'sf', label:'Semifinale', slots:2 },
   { id:'f', label:'Finale', slots:1 },
 ];
+
+// Sluttspillet åpner 28. juni 2026
+const KO_OPEN_DATE = new Date('2026-06-28T00:00:00');
 
 const NORWEGIAN_PLAYERS = [
   'Erling Haaland','Martin Ødegaard','Alexander Sørloth','Mohamed Elyounoussi',
@@ -473,6 +484,7 @@ function showApp(adminMode) {
   document.getElementById('main-sections').style.display = 'block';
   if (adminMode || state.isAdmin) renderAdminSection();
   buildGroupTabs();
+  checkKoOpen();
   buildKnockoutBracket();
   buildBonusGrid();
   updateLeaderboard();
@@ -561,6 +573,38 @@ function saveGroupPredictions() {
 }
 
 // ─── KNOCKOUT ───
+function checkKoOpen() {
+  const now = new Date();
+  const open = state.isAdmin || now >= KO_OPEN_DATE;
+  const locked = document.getElementById('ko-locked-banner');
+  const panel = document.getElementById('ko-open-panel');
+  if (locked) locked.style.display = open ? 'none' : 'block';
+  if (panel) panel.style.display = open ? 'block' : 'none';
+  if (!open) startKoCountdown();
+  return open;
+}
+
+function startKoCountdown() {
+  const el = document.getElementById('ko-countdown');
+  if (!el) return;
+  function update() {
+    const diff = KO_OPEN_DATE - new Date();
+    if (diff <= 0) { checkKoOpen(); buildKnockoutBracket(); return; }
+    const d = Math.floor(diff/86400000);
+    const h = Math.floor((diff%86400000)/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    el.innerHTML = [
+      {v:d,l:'dager'},{v:h,l:'timer'},{v:m,l:'min'},{v:s,l:'sek'}
+    ].map(x => `<div style="background:var(--lk-teal-dark);color:#fff;border-radius:10px;padding:14px 18px;min-width:64px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1">${String(x.v).padStart(2,'0')}</div>
+      <div style="font-size:11px;opacity:.7;letter-spacing:1px;text-transform:uppercase">${x.l}</div>
+    </div>`).join('');
+  }
+  update();
+  setInterval(update, 1000);
+}
+
 function buildKnockoutBracket() {
   const bracket = document.getElementById('knockout-bracket');
   bracket.innerHTML = '';
@@ -594,23 +638,33 @@ function buildKnockoutBracket() {
       ko.className = 'ko-match' + (slot.team1 || slot.team2 ? ' filled' : '');
       ko.style.borderRadius = '0 0 8px 8px';
 
-      const opts1 = TEAM_LIST.map(t => `<option value="${t.key}" ${slot.team1===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
-      const opts2 = TEAM_LIST.map(t => `<option value="${t.key}" ${slot.team2===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      // Teams set by admin, not user
+      const t1key = adminSlot.team1 || '';
+      const t2key = adminSlot.team2 || '';
+      const t1 = TEAMS[t1key];
+      const t2 = TEAMS[t2key];
+      const t1label = t1 ? `${t1.flag} ${t1.name}` : '– Lag 1 (ikke satt) –';
+      const t2label = t2 ? `${t2.flag} ${t2.name}` : '– Lag 2 (ikke satt) –';
+      const teamsSet = !!(t1key && t2key);
+
       ko.innerHTML = `
-        <div class="ko-team">
-          <select id="ko_t1_${round.id}_${i}" onchange="this.closest('.ko-match').classList.add('filled')">
-            <option value="">– Lag 1 –</option>${opts1}
-          </select>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–" value="${slot.score1!==undefined?slot.score1:''}" id="ko_s1_${round.id}_${i}">
+        <div class="ko-team" style="justify-content:space-between;">
+          <span style="font-weight:700;font-size:14px;flex:1">${t1label}</span>
+          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–"
+            value="${slot.score1!==undefined?slot.score1:''}" id="ko_s1_${round.id}_${i}"
+            ${!teamsSet?'disabled title="Venter på at admin setter lagene"':''}
+            oninput="this.closest('.ko-match').classList.add('filled')">
         </div>
         <div class="ko-divider"></div>
-        <div class="ko-team">
-          <select id="ko_t2_${round.id}_${i}" onchange="this.closest('.ko-match').classList.add('filled')">
-            <option value="">– Lag 2 –</option>${opts2}
-          </select>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–" value="${slot.score2!==undefined?slot.score2:''}" id="ko_s2_${round.id}_${i}">
+        <div class="ko-team" style="justify-content:space-between;">
+          <span style="font-weight:700;font-size:14px;flex:1">${t2label}</span>
+          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–"
+            value="${slot.score2!==undefined?slot.score2:''}" id="ko_s2_${round.id}_${i}"
+            ${!teamsSet?'disabled title="Venter på at admin setter lagene"':''}
+            oninput="this.closest('.ko-match').classList.add('filled')">
         </div>
-        ${adminSlot.winner ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
+        ${!teamsSet ? '<div style="margin-top:8px;font-size:11px;color:var(--lk-grey-mid);text-align:center;">⏳ Venter på lagoppsettet fra admin</div>' : ''}
+        ${adminSlot.winner ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ Videre: ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
       `;
       wrapper.appendChild(ko);
       matchWrap.appendChild(wrapper);
@@ -626,11 +680,13 @@ function saveKnockoutPredictions() {
   KO_ROUNDS.forEach(round => {
     ko[round.id] = ko[round.id] || {};
     for (let i = 0; i < round.slots; i++) {
-      const t1 = document.getElementById(`ko_t1_${round.id}_${i}`)?.value;
-      const t2 = document.getElementById(`ko_t2_${round.id}_${i}`)?.value;
       const s1 = document.getElementById(`ko_s1_${round.id}_${i}`)?.value;
       const s2 = document.getElementById(`ko_s2_${round.id}_${i}`)?.value;
-      ko[round.id][i] = { team1:t1, team2:t2, score1:s1!==''?parseInt(s1):undefined, score2:s2!==''?parseInt(s2):undefined };
+      ko[round.id][i] = {
+        ...(ko[round.id][i] || {}),
+        score1: s1!==''&&s1!==undefined ? parseInt(s1) : undefined,
+        score2: s2!==''&&s2!==undefined ? parseInt(s2) : undefined
+      };
     }
   });
   saveState();
@@ -697,8 +753,14 @@ function calcPoints(playerId) {
     const rA = state.adminKo[round.id] || {}, rP = pred.knockout[round.id] || {};
     for (let i=0; i<round.slots; i++) {
       const a=rA[i], p=rP[i];
-      if (!a||!p) continue;
-      if (a.winner && (p.team1===a.winner || p.team2===a.winner)) k += 5;
+      if (!a||!p||!a.winner) continue;
+      // User picks winner by tipping higher score for that team
+      const predWinner = (p.score1!==undefined && p.score2!==undefined)
+        ? (p.score1>p.score2 ? a.team1 : p.score2>p.score1 ? a.team2 : null)
+        : null;
+      if (predWinner && predWinner === a.winner) k += 5;
+      // Exact score bonus
+      if (p.score1===a.score1 && p.score2===a.score2) k += 2;
     }
   });
   const bP = pred.bonus||{}, aB = state.adminBonus||{};
@@ -774,15 +836,29 @@ function renderAdminSection() {
     html += `<div class="save-bar"><button class="btn-save" onclick="saveAdminGroup('${g.id}')">💾 Lagre ${g.name}</button></div></div>`;
   });
 
-  html += `<div class="card"><div class="card-title"><span class="icon">🏆</span> Sluttspill – Vinnere</div>`;
+  html += `<div class="card"><div class="card-title"><span class="icon">🏆</span> Sluttspill – Sett lag og vinnere</div>
+    <p style="font-size:12px;color:var(--lk-grey-mid);margin-bottom:14px">Sett lagene for hvert oppgjør når gruppespillet er ferdig. Deltakerne tipper resultater basert på lagene du setter her.</p>`;
   KO_ROUNDS.forEach(round => {
     html += `<div class="admin-section"><div class="admin-section-title">${round.label}</div>`;
     for (let i=0; i<round.slots; i++) {
       const slot=(state.adminKo[round.id]||{})[i]||{};
-      const opts=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.winner===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
-      html += `<div class="admin-result-row">
-        <span class="admin-label">Kamp ${i+1}</span>
-        <select class="admin-select" id="akw_${round.id}_${i}"><option value="">– Vinner –</option>${opts}</select>
+      const opts1=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.team1===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      const opts2=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.team2===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      const winOpts=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.winner===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      html += `<div style="background:#fff;border:1.5px solid var(--lk-grey-light);border-radius:8px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--lk-teal-dark);margin-bottom:8px;letter-spacing:.5px">KAMP ${i+1}</div>
+        <div class="admin-result-row">
+          <span class="admin-label">Lag 1</span>
+          <select class="admin-select" id="akt1_${round.id}_${i}"><option value="">– Velg lag –</option>${opts1}</select>
+        </div>
+        <div class="admin-result-row">
+          <span class="admin-label">Lag 2</span>
+          <select class="admin-select" id="akt2_${round.id}_${i}"><option value="">– Velg lag –</option>${opts2}</select>
+        </div>
+        <div class="admin-result-row">
+          <span class="admin-label">Vinner (fasit)</span>
+          <select class="admin-select" id="akw_${round.id}_${i}"><option value="">– Vinner –</option>${winOpts}</select>
+        </div>
       </div>`;
     }
     html += `</div>`;
@@ -829,11 +905,15 @@ function saveAdminKo() {
   KO_ROUNDS.forEach(round => {
     state.adminKo[round.id]=state.adminKo[round.id]||{};
     for (let i=0; i<round.slots; i++) {
-      const winner=document.getElementById(`akw_${round.id}_${i}`)?.value;
-      state.adminKo[round.id][i]={...(state.adminKo[round.id][i]||{}), winner};
+      const team1=document.getElementById(`akt1_${round.id}_${i}`)?.value||'';
+      const team2=document.getElementById(`akt2_${round.id}_${i}`)?.value||'';
+      const winner=document.getElementById(`akw_${round.id}_${i}`)?.value||'';
+      state.adminKo[round.id][i]={...(state.adminKo[round.id][i]||{}), team1, team2, winner};
     }
   });
-  saveState(); showToast('Sluttspill-fasit lagret ✅');
+  saveState();
+  buildKnockoutBracket(); // refresh so users see updated teams
+  showToast('Sluttspill oppdatert ✅');
 }
 
 function saveAdminBonus() {
