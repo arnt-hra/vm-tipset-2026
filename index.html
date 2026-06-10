@@ -372,12 +372,12 @@
 
         <div style="display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--lk-grey-light);">
           <div style="background:var(--lk-teal);color:#fff;border-radius:8px;padding:8px 12px;text-align:center;min-width:72px;flex-shrink:0;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1">11. JUNI</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1">15. JUNI</div>
             <div style="font-size:10px;opacity:.8;letter-spacing:1px">2026</div>
           </div>
           <div>
             <div style="font-weight:700;color:var(--lk-teal-dark);margin-bottom:4px">Frist: Gruppespill og bonustips</div>
-            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Alle gruppetips og bonustips må være levert <strong>før første kamp sparkes i gang</strong> – Mexico vs Sør-Afrika 11. juni. Tips levert etter dette teller ikke.</div>
+            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Alle gruppetips og bonustips må være levert <strong>før første kamp sparkes i gang</strong> – Sverige vs Tunisia 15. juni. Tips levert etter dette teller ikke. Norge spiller første kamp 16. juni.</div>
           </div>
         </div>
 
@@ -442,21 +442,21 @@
           <div class="rule-pts">10</div>
           <div class="rule-desc">
             <strong>Riktig VM-vinner</strong>
-            Du tipper riktig lag som vinner hele VM. Bonustips – must levert før 11. juni.
+            Du tipper riktig lag som vinner hele VM. Bonustips – må leveres før 15. juni.
           </div>
         </li>
         <li>
           <div class="rule-pts">10</div>
           <div class="rule-desc">
             <strong>Norges toppscorer</strong>
-            Du tipper riktig norsk spiller med flest mål i turneringen. Bonustips – må levers før 11. juni.
+            Du tipper riktig norsk spiller med flest mål i turneringen. Bonustips – må leveres før 15. juni.
           </div>
         </li>
         <li>
           <div class="rule-pts">5</div>
           <div class="rule-desc">
             <strong>Beste nordiske lag</strong>
-            Du tipper riktig hvilket av Norge og Sverige som kommer lengst i turneringen. Ved likt resultat teller best plassering i gruppen. Må leveres før 11. juni.
+            Du tipper riktig hvilket av Norge og Sverige som kommer lengst i turneringen. Ved likt resultat teller best plassering i gruppen. Må leveres før 15. juni.
           </div>
         </li>
       </ul>
@@ -573,6 +573,7 @@ const KO_ROUNDS = [
 
 // Sluttspillet åpner 28. juni 2026
 const KO_OPEN_DATE = new Date('2026-06-28T00:00:00');
+const GROUP_DEADLINE = new Date('2026-06-15T00:00:00'); // Første relevante kamp: Sverige 15. juni
 
 const NORWEGIAN_PLAYERS = [
   'Erling Haaland','Martin Ødegaard','Alexander Sørloth','Mohamed Elyounoussi',
@@ -583,21 +584,123 @@ const NORWEGIAN_PLAYERS = [
 const NORDIC_TEAMS_LIST = ['Norge','Sverige'];
 const TEAM_LIST = Object.entries(TEAMS).map(([k,v]) => ({ key:k, ...v }));
 
+// ─── SUPABASE ───
+const SB_URL = 'https://iyuedhtbozqtbcqcmfef.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dWVkaHRib3pxdGJjcWNtZmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwODUwNjAsImV4cCI6MjA5NjY2MTA2MH0.-89OiA1xZGpf4m8MAII_4BXL0g21zBoXIkGJ47ArRyA';
+
+const sbHeaders = {
+  'apikey': SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+async function sbGet(table, query='') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, { headers: sbHeaders });
+  if (!r.ok) throw new Error(`GET ${table}: ${r.status}`);
+  return r.json();
+}
+
+async function sbUpsert(table, data) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error(`UPSERT ${table}: ${r.status} ${t}`); }
+  return r.json();
+}
+
+async function sbDelete(table, filter) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${filter}`, {
+    method: 'DELETE', headers: sbHeaders
+  });
+  if (!r.ok) throw new Error(`DELETE ${table}: ${r.status}`);
+}
+
 // ─── STATE ───
 let state = { players:[], currentPlayer:null, predictions:{}, adminResults:{}, adminKo:{}, adminBonus:{}, isAdmin:false };
 
-function loadState() { try { const s = localStorage.getItem('lunner_vm_2026'); if(s) state = JSON.parse(s); } catch(e){} }
-function saveState() { try { localStorage.setItem('lunner_vm_2026', JSON.stringify(state)); } catch(e){} }
+function loadLocalState() {
+  try { const s = localStorage.getItem('lunner_vm_2026'); if(s) state = JSON.parse(s); } catch(e) {}
+}
+function saveLocalState() {
+  try { localStorage.setItem('lunner_vm_2026', JSON.stringify(state)); } catch(e) {}
+}
+
+// Hent ALT fra Supabase og bygg state
+async function loadFromSupabase() {
+  try {
+    // Deltakere
+    const deltakere = await sbGet('deltakere', 'select=*&order=opprettet.asc');
+    state.players = deltakere.map(d => ({ id: d.id, name: d.navn }));
+
+    // Tips for alle spillere
+    const alleTips = await sbGet('tips', 'select=*');
+    state.predictions = {};
+    alleTips.forEach(t => {
+      if (!state.predictions[t.deltaker_id]) state.predictions[t.deltaker_id] = { groups:{}, knockout:{}, bonus:{} };
+      state.predictions[t.deltaker_id][t.type] = t.data;
+    });
+
+    // Resultater (admin)
+    const resultater = await sbGet('resultater', 'select=*');
+    resultater.forEach(r => {
+      if (r.id === 'groups') state.adminResults = r.data;
+      if (r.id === 'knockout') state.adminKo = r.data;
+      if (r.id === 'bonus') state.adminBonus = r.data;
+    });
+
+    saveLocalState();
+  } catch(e) {
+    console.warn('Supabase load feilet, bruker localStorage:', e.message);
+    loadLocalState();
+  }
+}
+
+// Lagre deltaker til Supabase
+async function syncDeltaker(player) {
+  try {
+    await sbUpsert('deltakere', { id: player.id, navn: player.name });
+  } catch(e) { console.warn('Sync deltaker feilet:', e.message); }
+}
+
+// Lagre tips til Supabase
+async function syncTips(playerId, type, data) {
+  try {
+    await sbUpsert('tips', { deltaker_id: playerId, type, data, oppdatert: new Date().toISOString() });
+  } catch(e) { console.warn('Sync tips feilet:', e.message); }
+}
+
+// Lagre admin-resultater til Supabase
+async function syncResultater(id, data) {
+  try {
+    await sbUpsert('resultater', { id, data, oppdatert: new Date().toISOString() });
+  } catch(e) { console.warn('Sync resultater feilet:', e.message); }
+}
 
 // ─── REGISTRATION ───
-function registerPlayer() {
+async function registerPlayer() {
   const name = document.getElementById('reg-name').value.trim();
   if (!name) { showToast('Skriv inn navnet ditt 👆'); return; }
+
+  // Sjekk om navn allerede finnes
+  const existing = state.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    state.currentPlayer = existing.id;
+    saveLocalState();
+    showToast(`Velkommen tilbake, ${existing.name}! 👋`);
+    showApp();
+    return;
+  }
+
   const id = 'p_' + Date.now();
-  state.players.push({ id, name });
+  const player = { id, name };
+  state.players.push(player);
   state.currentPlayer = id;
   state.predictions[id] = { groups:{}, knockout:{}, bonus:{} };
-  saveState();
+  saveLocalState();
+  await syncDeltaker(player);
   showApp();
 }
 
@@ -605,7 +708,11 @@ function showSwitchPlayer() {
   if (!state.players.length) { showToast('Ingen spillere registrert'); return; }
   const names = state.players.map((p,i) => `${i+1}. ${p.name}`).join('\n');
   const idx = parseInt(prompt('Velg spiller (skriv nummer):\n' + names)) - 1;
-  if (idx >= 0 && idx < state.players.length) { state.currentPlayer = state.players[idx].id; saveState(); showApp(); }
+  if (idx >= 0 && idx < state.players.length) {
+    state.currentPlayer = state.players[idx].id;
+    saveLocalState();
+    showApp();
+  }
 }
 
 function showAdminLogin() {
@@ -694,7 +801,7 @@ function markMatchFilled(matchId) {
   if (h !== '' && a !== '') document.getElementById('m_h_' + matchId)?.closest('.match-card')?.classList.add('filled');
 }
 
-function saveGroupPredictions() {
+async function saveGroupPredictions() {
   if (!state.currentPlayer) return;
   const preds = state.predictions[state.currentPlayer].groups;
   GROUPS.forEach(g => g.matches.forEach(m => {
@@ -702,7 +809,9 @@ function saveGroupPredictions() {
     const a = document.getElementById('m_a_' + m.id)?.value;
     if (h !== '' && a !== '') preds[m.id] = { h:parseInt(h), a:parseInt(a) };
   }));
-  saveState();
+  saveLocalState();
+  document.getElementById('group-save-status').textContent = '💾 Lagrer...';
+  await syncTips(state.currentPlayer, 'groups', preds);
   document.getElementById('group-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
   showToast('Gruppetips lagret! 🎉');
 }
@@ -809,7 +918,7 @@ function buildKnockoutBracket() {
   });
 }
 
-function saveKnockoutPredictions() {
+async function saveKnockoutPredictions() {
   if (!state.currentPlayer) return;
   const ko = state.predictions[state.currentPlayer].knockout;
   KO_ROUNDS.forEach(round => {
@@ -824,7 +933,9 @@ function saveKnockoutPredictions() {
       };
     }
   });
-  saveState();
+  saveLocalState();
+  document.getElementById('ko-save-status').textContent = '💾 Lagrer...';
+  await syncTips(state.currentPlayer, 'knockout', ko);
   document.getElementById('ko-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
   showToast('Sluttspilltips lagret! 🏆');
 }
@@ -862,16 +973,19 @@ function buildBonusGrid() {
   `;
 }
 
-function saveBonusPredictions() {
+async function saveBonusPredictions() {
   if (!state.currentPlayer) return;
   const bonus = state.predictions[state.currentPlayer].bonus;
   bonus.winner = document.getElementById('bonus-winner')?.value;
   bonus.topscorer = document.getElementById('bonus-topscorer')?.value;
   bonus.nordic = document.getElementById('bonus-nordic')?.value;
-  saveState();
+  saveLocalState();
+  document.getElementById('bonus-save-status').textContent = '💾 Lagrer...';
+  await syncTips(state.currentPlayer, 'bonus', bonus);
   document.getElementById('bonus-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
   showToast('Bonustips lagret! ⭐');
 }
+
 
 // ─── SCORING ───
 function calcPoints(playerId) {
@@ -1026,16 +1140,19 @@ function renderAdminSection() {
   container.innerHTML = html;
 }
 
-function saveAdminGroup(groupId) {
+async function saveAdminGroup(groupId) {
   if (!state.adminResults) state.adminResults={};
   GROUPS.find(g=>g.id===groupId)?.matches.forEach(m => {
     const h=document.getElementById('ar_h_'+m.id)?.value, a=document.getElementById('ar_a_'+m.id)?.value;
     if (h!=='' && a!=='') state.adminResults[m.id]={h:parseInt(h),a:parseInt(a)};
   });
-  saveState(); showToast('Gruppe '+groupId+' resultater lagret ✅');
+  saveLocalState();
+  await syncResultater('groups', state.adminResults);
+  updateLeaderboard();
+  showToast('Gruppe '+groupId+' resultater lagret ✅');
 }
 
-function saveAdminKo() {
+async function saveAdminKo() {
   if (!state.adminKo) state.adminKo={};
   KO_ROUNDS.forEach(round => {
     state.adminKo[round.id]=state.adminKo[round.id]||{};
@@ -1046,25 +1163,37 @@ function saveAdminKo() {
       state.adminKo[round.id][i]={...(state.adminKo[round.id][i]||{}), team1, team2, winner};
     }
   });
-  saveState();
-  buildKnockoutBracket(); // refresh so users see updated teams
+  saveLocalState();
+  await syncResultater('knockout', state.adminKo);
+  buildKnockoutBracket();
+  updateLeaderboard();
   showToast('Sluttspill oppdatert ✅');
 }
 
-function saveAdminBonus() {
+async function saveAdminBonus() {
   if (!state.adminBonus) state.adminBonus={};
   state.adminBonus.winner=document.getElementById('ab-winner')?.value;
   state.adminBonus.topscorer=document.getElementById('ab-topscorer')?.value;
   state.adminBonus.nordic=document.getElementById('ab-nordic')?.value;
-  saveState(); showToast('Bonus-fasit lagret ✅');
+  saveLocalState();
+  await syncResultater('bonus', state.adminBonus);
+  updateLeaderboard();
+  showToast('Bonus-fasit lagret ✅');
 }
 
-function deletePlayer(id) {
+async function deletePlayer(id) {
   if (!confirm('Slette denne deltakeren?')) return;
+  try {
+    await sbDelete('tips', `deltaker_id=eq.${id}`);
+    await sbDelete('deltakere', `id=eq.${id}`);
+  } catch(e) { console.warn('Slett feilet:', e.message); }
   state.players=state.players.filter(p=>p.id!==id);
   delete state.predictions[id];
   if (state.currentPlayer===id) state.currentPlayer=state.players[0]?.id||null;
-  saveState(); renderAdminSection(); showToast('Deltaker slettet');
+  saveLocalState();
+  renderAdminSection();
+  updateLeaderboard();
+  showToast('Deltaker slettet');
 }
 
 // ─── TOAST ───
@@ -1075,8 +1204,38 @@ function showToast(msg) {
 }
 
 // ─── INIT ───
-loadState();
-if (state.currentPlayer && state.players.find(p=>p.id===state.currentPlayer)) showApp(state.isAdmin);
+async function init() {
+  // Show loading indicator
+  const gate = document.getElementById('reg-gate');
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loading-indicator';
+  loadingDiv.style.cssText = 'text-align:center;padding:20px;color:var(--lk-grey-mid);font-size:13px;';
+  loadingDiv.innerHTML = '<div style="font-size:28px;margin-bottom:8px">⏳</div>Henter deltakere...';
+  gate.appendChild(loadingDiv);
+
+  // Load from Supabase (falls back to localStorage on error)
+  await loadFromSupabase();
+
+  // Remove loading indicator
+  loadingDiv.remove();
+
+  // Restore current player from localStorage
+  const local = localStorage.getItem('lunner_vm_2026');
+  if (local) {
+    try {
+      const localState = JSON.parse(local);
+      if (localState.currentPlayer && state.players.find(p=>p.id===localState.currentPlayer)) {
+        state.currentPlayer = localState.currentPlayer;
+        state.isAdmin = localState.isAdmin || false;
+        showApp(state.isAdmin);
+        return;
+      }
+    } catch(e) {}
+  }
+  // No current player — show registration
+}
+
+init();
 </script>
 </body>
 </html>
