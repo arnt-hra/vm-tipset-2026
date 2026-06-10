@@ -324,16 +324,22 @@
 
   <div class="section" id="section-ledertavle">
     <div class="card">
-      <div class="card-title"><span class="icon">📊</span> Ledertavle</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div class="card-title" style="margin-bottom:0"><span class="icon">📊</span> Ledertavle</div>
+        <button onclick="refreshLeaderboard();showToast('Oppdaterer...')" style="background:none;border:1.5px solid var(--lk-teal);color:var(--lk-teal);border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">🔄 Oppdater</button>
+      </div>
       <div class="points-summary" id="points-summary"></div>
-      <table class="leaderboard-table">
+      <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr>
-            <th>#</th><th>Deltaker</th><th>Gruppe</th><th>Sluttspill</th><th>Bonus</th><th>Totalt</th>
+            <th style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--lk-grey-mid);padding:8px;text-align:left;border-bottom:2px solid var(--lk-grey-light);width:40px">#</th>
+            <th style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--lk-grey-mid);padding:8px;text-align:left;border-bottom:2px solid var(--lk-grey-light)">Deltaker</th>
+            <th style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--lk-grey-mid);padding:8px;text-align:right;border-bottom:2px solid var(--lk-grey-light)">Poeng</th>
           </tr>
         </thead>
         <tbody id="leaderboard-body"></tbody>
       </table>
+      <div style="margin-top:12px;font-size:11px;color:var(--lk-grey-mid);text-align:center">Oppdateres automatisk hvert 30. sekund</div>
     </div>
   </div>
 
@@ -546,19 +552,13 @@ const TEAMS = {
 
 const GROUPS = [
   { id:'F', name:'Gruppe F – Sverige 🇸🇪', matches:[
-    { id:'F1', home:'nederland', away:'japan', date:'14. juni' },
     { id:'F2', home:'sverige', away:'tunisia', date:'15. juni' },
     { id:'F3', home:'nederland', away:'sverige', date:'20. juni' },
-    { id:'F4', home:'tunisia', away:'japan', date:'21. juni' },
-    { id:'F5', home:'nederland', away:'tunisia', date:'25. juni' },
     { id:'F6', home:'japan', away:'sverige', date:'25. juni' },
   ]},
   { id:'I', name:'Gruppe I – Norge 🇳🇴', matches:[
-    { id:'I1', home:'frankrike', away:'senegal', date:'16. juni' },
     { id:'I2', home:'norge', away:'irak', date:'16. juni' },
     { id:'I3', home:'frankrike', away:'norge', date:'22. juni' },
-    { id:'I4', home:'irak', away:'senegal', date:'22. juni' },
-    { id:'I5', home:'frankrike', away:'irak', date:'26. juni' },
     { id:'I6', home:'senegal', away:'norge', date:'26. juni' },
   ]},
 ];
@@ -739,7 +739,13 @@ function showSection(id) {
   if (sec) sec.classList.add('visible');
   document.querySelectorAll('.htab, .ptab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('[onclick*="showSection(\'' + id + '\')"]').forEach(t => t.classList.add('active'));
-  if (id === 'ledertavle') updateLeaderboard();
+  if (id === 'ledertavle') {
+    refreshLeaderboard();
+    startLeaderboardRefresh();
+  } else {
+    stopLeaderboardRefresh();
+    if (id !== 'ledertavle') updateLeaderboard();
+  }
 }
 
 // ─── GROUP STAGE ───
@@ -1022,27 +1028,78 @@ function calcPoints(playerId) {
 function updateLeaderboard() {
   const tbody = document.getElementById('leaderboard-body');
   if (!tbody) return;
-  const results = state.players.map(p => ({ player:p, ...calcPoints(p.id) })).sort((a,b) => b.total-a.total);
+
+  const results = state.players
+    .map(p => ({ player:p, ...calcPoints(p.id) }))
+    .sort((a,b) => b.total - a.total);
+
+  const maxPts = results[0]?.total || 1;
+  const totalMatches = GROUPS.reduce((s,g) => s + g.matches.filter(m => state.adminResults[m.id]).length, 0);
+  const myId = state.currentPlayer;
+
+  // Stats chips
+  document.getElementById('points-summary').innerHTML = `
+    <span class="pts-chip">👥 <strong>${state.players.length}</strong> deltakere</span>
+    <span class="pts-chip">⚽ <strong>${totalMatches}</strong> av ${GROUPS.reduce((s,g)=>s+g.matches.length,0)} kamper spilt</span>
+    <span class="pts-chip">🏆 <strong>${results[0]?.total||0}</strong> ledende poeng</span>
+    <span class="pts-chip" style="margin-left:auto;font-size:11px;color:var(--lk-grey-mid)">Oppdatert ${new Date().toLocaleTimeString('no')}</span>
+  `;
+
   if (!results.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="emoji">📊</div>Ingen deltakere ennå</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3"><div class="empty-state"><div class="emoji">📊</div>Ingen deltakere ennå</div></td></tr>';
     return;
   }
-  tbody.innerHTML = results.map((r,i) => {
-    const cls = i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
-    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
-    return `<tr>
-      <td><span class="rank-badge ${cls}">${medal}</span></td>
-      <td><div class="player-name">${r.player.name}</div></td>
-      <td>${r.groupPts}</td><td>${r.koPts}</td><td>${r.bonusPts}</td>
-      <td><span class="pts-badge">${r.total}</span></td>
+
+  tbody.innerHTML = results.map((r, i) => {
+    const isMe = r.player.id === myId;
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="font-size:13px;font-weight:700">${i+1}</span>`;
+    const pct = maxPts > 0 ? Math.round((r.total / maxPts) * 100) : 0;
+    const barColor = i===0 ? '#f0c040' : i===1 ? '#c0c8d0' : i===2 ? '#c87941' : 'var(--lk-teal-light)';
+    const rowBg = isMe ? 'background:rgba(0,120,140,0.06);' : '';
+    const nameSuffix = isMe ? ' <span style="font-size:10px;background:var(--lk-teal);color:#fff;border-radius:4px;padding:1px 5px;vertical-align:middle">DEG</span>' : '';
+
+    // Show diff to leader
+    const diff = i === 0 ? '' : `<span style="font-size:11px;color:var(--lk-grey-mid)">−${results[0].total - r.total} p</span>`;
+
+    return `<tr style="${rowBg}border-bottom:1px solid var(--lk-grey-light);">
+      <td style="padding:12px 8px;width:40px;text-align:center">${medal}</td>
+      <td style="padding:12px 8px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:5px">${r.player.name}${nameSuffix}</div>
+        <div style="background:var(--lk-grey-light);border-radius:4px;height:6px;overflow:hidden;max-width:260px;">
+          <div style="background:${barColor};height:100%;width:${pct}%;border-radius:4px;transition:width .6s ease;"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;font-size:11px;color:var(--lk-grey-mid);">
+          <span>⚽ Gruppe: <strong>${r.groupPts}</strong></span>
+          <span>🏆 Sluttspill: <strong>${r.koPts}</strong></span>
+          <span>⭐ Bonus: <strong>${r.bonusPts}</strong></span>
+        </div>
+      </td>
+      <td style="padding:12px 8px;text-align:right;white-space:nowrap;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--lk-teal);line-height:1">${r.total}</div>
+        <div style="font-size:10px;color:var(--lk-grey-mid);">poeng</div>
+        <div style="margin-top:2px">${diff}</div>
+      </td>
     </tr>`;
   }).join('');
-  const totalMatches = GROUPS.reduce((s,g) => s + g.matches.filter(m => state.adminResults[m.id]).length, 0);
-  document.getElementById('points-summary').innerHTML = `
-    <span class="pts-chip">🔢 <strong>${state.players.length}</strong> deltakere</span>
-    <span class="pts-chip">⚽ <strong>${totalMatches}</strong> kamper spilt</span>
-    <span class="pts-chip">🏆 <strong>${results[0]?.total||0}</strong> ledende poeng</span>
-  `;
+}
+
+// Auto-refresh ledertavle every 30 sec when visible
+let leaderboardInterval = null;
+async function refreshLeaderboard() {
+  await loadFromSupabase();
+  updateLeaderboard();
+  if (document.getElementById('section-ledertavle')?.classList.contains('visible')) {
+    buildGroupTabs();
+    buildBonusGrid();
+  }
+}
+function startLeaderboardRefresh() {
+  if (leaderboardInterval) clearInterval(leaderboardInterval);
+  leaderboardInterval = setInterval(refreshLeaderboard, 30000);
+}
+function stopLeaderboardRefresh() {
+  if (leaderboardInterval) clearInterval(leaderboardInterval);
+  leaderboardInterval = null;
 }
 
 // ─── ADMIN ───
