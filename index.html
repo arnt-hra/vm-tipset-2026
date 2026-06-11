@@ -1263,7 +1263,10 @@ function renderAdminSection() {
     });
   }
   html += `</div>`;
-    <p style="font-size:12px;color:var(--lk-grey-mid);margin-bottom:12px">Slett en deltaker hvis de er registrert feil.</p>`;
+
+  // Påmeldte deltakere med slett-knapp
+  html += `<div class="card"><div class="card-title"><span class="icon">👥</span> Påmeldte deltakere</div>
+    <p style="font-size:12px;color:var(--lk-grey-mid);margin-bottom:12px">Slett en deltaker hvis de er registrert med feil navn.</p>`;
   if (!state.players.length) {
     html += `<div class="empty-state"><div class="emoji">👤</div>Ingen påmeldte ennå</div>`;
   } else {
