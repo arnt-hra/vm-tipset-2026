@@ -594,18 +594,25 @@ const sbHeaders = {
 
 async function sbGet(table, query='') {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${query}`, { headers: sbHeaders });
-  if (!r.ok) throw new Error(`GET ${table}: ${r.status}`);
+  if (!r.ok) throw new Error(`GET ${table}: ${r.status} ${await r.text()}`);
   return r.json();
 }
 
 async function sbUpsert(table, data) {
   const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
     method: 'POST',
-    headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    headers: {
+      ...sbHeaders,
+      'Prefer': 'resolution=merge-duplicates'
+    },
     body: JSON.stringify(data)
   });
-  if (!r.ok) { const t = await r.text(); throw new Error(`UPSERT ${table}: ${r.status} ${t}`); }
-  return r.json();
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error(`UPSERT ${table}: ${r.status} ${txt}`);
+  }
+  // 200/201/204 — alle OK, ikke kall r.json() siden body kan være tom
+  return true;
 }
 
 async function sbDelete(table, filter) {
@@ -659,21 +666,36 @@ async function loadFromSupabase() {
 async function syncDeltaker(player) {
   try {
     await sbUpsert('deltakere', { id: player.id, navn: player.name });
-  } catch(e) { console.warn('Sync deltaker feilet:', e.message); }
+    return true;
+  } catch(e) {
+    console.error('Sync deltaker feilet:', e.message);
+    showToast('⚠️ Kunne ikke koble til server – prøv igjen');
+    return false;
+  }
 }
 
 // Lagre tips til Supabase
 async function syncTips(playerId, type, data) {
   try {
     await sbUpsert('tips', { deltaker_id: playerId, type, data, oppdatert: new Date().toISOString() });
-  } catch(e) { console.warn('Sync tips feilet:', e.message); }
+    return true;
+  } catch(e) {
+    console.error('Sync tips feilet:', e.message);
+    showToast('⚠️ Lagring feilet – sjekk internett og prøv igjen');
+    return false;
+  }
 }
 
 // Lagre admin-resultater til Supabase
 async function syncResultater(id, data) {
   try {
     await sbUpsert('resultater', { id, data, oppdatert: new Date().toISOString() });
-  } catch(e) { console.warn('Sync resultater feilet:', e.message); }
+    return true;
+  } catch(e) {
+    console.error('Sync resultater feilet:', e.message);
+    showToast('⚠️ Lagring feilet: ' + e.message);
+    return false;
+  }
 }
 
 // ─── REGISTRATION ───
@@ -817,10 +839,11 @@ async function saveGroupPredictions() {
     if (h !== '' && a !== '') preds[m.id] = { h:parseInt(h), a:parseInt(a) };
   }));
   saveLocalState();
-  document.getElementById('group-save-status').textContent = '💾 Lagrer...';
-  await syncTips(state.currentPlayer, 'groups', preds);
-  document.getElementById('group-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
-  showToast('Gruppetips lagret! 🎉');
+  const el = document.getElementById('group-save-status');
+  el.textContent = '💾 Lagrer...';
+  const ok = await syncTips(state.currentPlayer, 'groups', preds);
+  el.textContent = ok ? '✅ Lagret ' + new Date().toLocaleTimeString('no') : '❌ Lagring feilet – prøv igjen';
+  if (ok) showToast('Gruppetips lagret! 🎉');
 }
 
 // ─── KNOCKOUT ───
@@ -941,10 +964,11 @@ async function saveKnockoutPredictions() {
     }
   });
   saveLocalState();
-  document.getElementById('ko-save-status').textContent = '💾 Lagrer...';
-  await syncTips(state.currentPlayer, 'knockout', ko);
-  document.getElementById('ko-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
-  showToast('Sluttspilltips lagret! 🏆');
+  const el = document.getElementById('ko-save-status');
+  el.textContent = '💾 Lagrer...';
+  const ok = await syncTips(state.currentPlayer, 'knockout', ko);
+  el.textContent = ok ? '✅ Lagret ' + new Date().toLocaleTimeString('no') : '❌ Lagring feilet – prøv igjen';
+  if (ok) showToast('Sluttspilltips lagret! 🏆');
 }
 
 // ─── BONUS ───
@@ -987,10 +1011,11 @@ async function saveBonusPredictions() {
   bonus.topscorer = document.getElementById('bonus-topscorer')?.value;
   bonus.nordic = document.getElementById('bonus-nordic')?.value;
   saveLocalState();
-  document.getElementById('bonus-save-status').textContent = '💾 Lagrer...';
-  await syncTips(state.currentPlayer, 'bonus', bonus);
-  document.getElementById('bonus-save-status').textContent = '✅ Lagret ' + new Date().toLocaleTimeString('no');
-  showToast('Bonustips lagret! ⭐');
+  const el = document.getElementById('bonus-save-status');
+  el.textContent = '💾 Lagrer...';
+  const ok = await syncTips(state.currentPlayer, 'bonus', bonus);
+  el.textContent = ok ? '✅ Lagret ' + new Date().toLocaleTimeString('no') : '❌ Lagring feilet – prøv igjen';
+  if (ok) showToast('Bonustips lagret! ⭐');
 }
 
 
