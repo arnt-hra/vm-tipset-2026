@@ -81,8 +81,8 @@
 
   .matches-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 14px; }
   .match-card { background: var(--lk-off-white); border: 1.5px solid var(--lk-grey-light); border-radius: 10px; padding: 16px; transition: border-color .18s, box-shadow .18s; }
-  .match-card.filled { border-color: var(--lk-teal-mid); }
-  .match-card:hover { box-shadow: 0 2px 12px rgba(0,120,140,0.10); }
+  .match-card.locked { background: #f5f5f5; border-color: #ddd; opacity: .9; }
+  .match-card.locked:hover { box-shadow: none; cursor: default; }
   .match-meta { font-size: 11px; font-weight: 700; color: var(--lk-grey-mid); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 10px; }
   .match-teams { display: flex; align-items: center; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
   .team-name { font-weight: 700; font-size: 14px; color: var(--lk-text); text-align: center; flex: 1; display: flex; align-items: center; gap: 6px; justify-content: center; }
@@ -549,14 +549,14 @@ const TEAMS = {
 
 const GROUPS = [
   { id:'F', name:'Gruppe F – Sverige 🇸🇪', matches:[
-    { id:'F2', home:'sverige', away:'tunisia', date:'15. juni' },
-    { id:'F3', home:'nederland', away:'sverige', date:'20. juni' },
-    { id:'F6', home:'japan', away:'sverige', date:'25. juni' },
+    { id:'F2', home:'sverige', away:'tunisia',  date:'15. juni', kickoff: '2026-06-15T21:00:00' },
+    { id:'F3', home:'nederland', away:'sverige', date:'20. juni', kickoff: '2026-06-20T21:00:00' },
+    { id:'F6', home:'japan', away:'sverige',    date:'25. juni', kickoff: '2026-06-25T21:00:00' },
   ]},
   { id:'I', name:'Gruppe I – Norge 🇳🇴', matches:[
-    { id:'I2', home:'norge', away:'irak', date:'16. juni' },
-    { id:'I3', home:'frankrike', away:'norge', date:'22. juni' },
-    { id:'I6', home:'senegal', away:'norge', date:'26. juni' },
+    { id:'I2', home:'norge', away:'irak',       date:'16. juni', kickoff: '2026-06-16T18:00:00' },
+    { id:'I3', home:'frankrike', away:'norge',  date:'22. juni', kickoff: '2026-06-22T21:00:00' },
+    { id:'I6', home:'senegal', away:'norge',    date:'26. juni', kickoff: '2026-06-26T21:00:00' },
   ]},
 ];
 
@@ -776,6 +776,8 @@ function buildGroupTabs() {
   const tabsEl = document.getElementById('group-tabs');
   const panelsEl = document.getElementById('group-panels');
   tabsEl.innerHTML = ''; panelsEl.innerHTML = '';
+  const now = new Date();
+
   GROUPS.forEach((g, gi) => {
     const tab = document.createElement('button');
     tab.className = 'gtab' + (gi===0 ? ' active' : '');
@@ -800,22 +802,37 @@ function buildGroupTabs() {
       const pred = preds[m.id] || {};
       const result = results[m.id];
       const isFilled = pred.h !== undefined && pred.a !== undefined;
+      const isLocked = !state.isAdmin && m.kickoff && new Date(m.kickoff) <= now;
       const card = document.createElement('div');
-      card.className = 'match-card' + (isFilled ? ' filled' : '');
+      card.className = 'match-card' + (isFilled ? ' filled' : '') + (isLocked ? ' locked' : '');
       const home = TEAMS[m.home], away = TEAMS[m.away];
+
+      const scoreSection = isLocked
+        ? `<div style="text-align:center;padding:10px 0 4px;">
+            ${isFilled
+              ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--lk-teal-dark);letter-spacing:2px">${pred.h} – ${pred.a}</span>
+                 <div style="font-size:10px;color:var(--lk-grey-mid);margin-top:2px">Ditt tips</div>`
+              : `<span style="font-size:13px;color:var(--lk-grey-mid)">⛔ Ingen tips levert</span>`
+            }
+           </div>`
+        : `<div class="score-inputs">
+            <input type="number" class="no-spin" min="0" max="20" value="${pred.h!==undefined?pred.h:''}" placeholder="–" id="m_h_${m.id}" oninput="markMatchFilled('${m.id}')">
+            <div class="score-dash">–</div>
+            <input type="number" class="no-spin" min="0" max="20" value="${pred.a!==undefined?pred.a:''}" placeholder="–" id="m_a_${m.id}" oninput="markMatchFilled('${m.id}')">
+           </div>`;
+
       card.innerHTML = `
-        <div class="match-meta">${g.name} · ${m.date}</div>
+        <div class="match-meta">
+          ${m.date}
+          ${isLocked ? '<span style="float:right;background:#e8f0e8;color:#888;border-radius:4px;padding:1px 6px;font-size:10px">🔒 Stengt</span>' : ''}
+        </div>
         <div class="match-teams">
           <div class="team-name"><span class="team-flag">${home.flag}</span>${home.name}</div>
           <div class="vs-label">VS</div>
           <div class="team-name">${away.name}<span class="team-flag">${away.flag}</span></div>
         </div>
-        <div class="score-inputs">
-          <input type="number" class="no-spin" min="0" max="20" value="${pred.h!==undefined?pred.h:''}" placeholder="–" id="m_h_${m.id}" oninput="markMatchFilled('${m.id}')">
-          <div class="score-dash">–</div>
-          <input type="number" class="no-spin" min="0" max="20" value="${pred.a!==undefined?pred.a:''}" placeholder="–" id="m_a_${m.id}" oninput="markMatchFilled('${m.id}')">
-        </div>
-        ${result ? `<div style="text-align:center;margin-top:8px;font-size:11px;color:var(--lk-teal);font-weight:700">Fasit: ${result.h}–${result.a}</div>` : ''}
+        ${scoreSection}
+        ${result ? `<div style="text-align:center;margin-top:8px;font-size:12px;color:var(--lk-teal);font-weight:700;border-top:1px solid var(--lk-grey-light);padding-top:8px">Fasit: ${result.h}–${result.a}</div>` : ''}
       `;
       grid.appendChild(card);
     });
@@ -833,7 +850,9 @@ function markMatchFilled(matchId) {
 async function saveGroupPredictions() {
   if (!state.currentPlayer) return;
   const preds = state.predictions[state.currentPlayer].groups;
+  const now = new Date();
   GROUPS.forEach(g => g.matches.forEach(m => {
+    if (m.kickoff && new Date(m.kickoff) <= now) return; // skip locked
     const h = document.getElementById('m_h_' + m.id)?.value;
     const a = document.getElementById('m_a_' + m.id)?.value;
     if (h !== '' && a !== '') preds[m.id] = { h:parseInt(h), a:parseInt(a) };
