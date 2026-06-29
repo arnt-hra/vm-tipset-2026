@@ -560,14 +560,14 @@ const TEAMS = {
 
 const GROUPS = [
   { id:'F', name:'Gruppe F – Sverige 🇸🇪', matches:[
-    { id:'F2', home:'sverige', away:'tunisia',  date:'15. juni kl. 04:00', kickoff: '2026-06-15T04:00:00' },
-    { id:'F3', home:'nederland', away:'sverige', date:'20. juni kl. 19:00', kickoff: '2026-06-20T19:00:00' },
-    { id:'F6', home:'japan', away:'sverige',    date:'26. juni kl. 01:00', kickoff: '2026-06-26T01:00:00' },
+    { id:'F2', home:'sverige', away:'tunisia',  date:'15. juni kl. 04:00', kickoff: '2026-06-15T02:00:00Z' },
+    { id:'F3', home:'nederland', away:'sverige', date:'20. juni kl. 19:00', kickoff: '2026-06-20T17:00:00Z' },
+    { id:'F6', home:'japan', away:'sverige',    date:'26. juni kl. 01:00', kickoff: '2026-06-25T23:00:00Z' },
   ]},
   { id:'I', name:'Gruppe I – Norge 🇳🇴', matches:[
-    { id:'I2', home:'norge', away:'irak',       date:'17. juni kl. 00:00', kickoff: '2026-06-17T00:00:00' },
-    { id:'I3', home:'norge', away:'senegal',    date:'23. juni kl. 02:00', kickoff: '2026-06-23T02:00:00' },
-    { id:'I6', home:'norge', away:'frankrike',  date:'26. juni kl. 21:00', kickoff: '2026-06-26T21:00:00' },
+    { id:'I2', home:'norge', away:'irak',       date:'17. juni kl. 00:00', kickoff: '2026-06-16T22:00:00Z' },
+    { id:'I3', home:'norge', away:'senegal',    date:'23. juni kl. 02:00', kickoff: '2026-06-23T00:00:00Z' },
+    { id:'I6', home:'norge', away:'frankrike',  date:'26. juni kl. 21:00', kickoff: '2026-06-26T19:00:00Z' },
   ]},
 ];
 
@@ -579,25 +579,25 @@ const KO_ROUNDS = [
   { id:'f', label:'Finale', slots:1 },
 ];
 
-// Alle 16 kampene i 16-delsfinalen (norsk tid)
+// Alle 16 kampene i 16-delsfinalen (kickoff i UTC = norsk tid minus 2 timer)
 const KO_PRESET = {
   r32: {
-    0:  { team1:'sydafrika',   team2:'canada',     date:'28. jun kl. 21:00', kickoff:'2026-06-28T21:00:00' },
-    1:  { team1:'brasil',      team2:'japan',      date:'29. jun kl. 19:00', kickoff:'2026-06-29T19:00:00' },
-    2:  { team1:'tyskland',    team2:'paraguay',   date:'29. jun kl. 22:30', kickoff:'2026-06-29T22:30:00' },
-    3:  { team1:'nederland',   team2:'marokko',    date:'30. jun kl. 03:00', kickoff:'2026-06-30T03:00:00' },
-    4:  { team1:'elfenbein',   team2:'norge',      date:'30. jun kl. 19:00', kickoff:'2026-06-30T19:00:00' },
-    5:  { team1:'frankrike',   team2:'sverige',    date:'30. jun kl. 23:00', kickoff:'2026-06-30T23:00:00' },
-    6:  { team1:'mexico',      team2:'ecuador',    date:'1. jul kl. 03:00',  kickoff:'2026-07-01T03:00:00' },
-    7:  { team1:'england',     team2:'drkongo',    date:'1. jul kl. 18:00',  kickoff:'2026-07-01T18:00:00' },
-    8:  { team1:'belgia',      team2:'senegal',    date:'1. jul kl. 22:00',  kickoff:'2026-07-01T22:00:00' },
-    9:  { team1:'usa',         team2:'bosnia',     date:'2. jul kl. 02:00',  kickoff:'2026-07-02T02:00:00' },
-    10: { team1:'spania',      team2:'osterrike',  date:'2. jul kl. 21:00',  kickoff:'2026-07-02T21:00:00' },
-    11: { team1:'portugal',    team2:'kroatia',    date:'3. jul kl. 01:00',  kickoff:'2026-07-03T01:00:00' },
-    12: { team1:'sveits',      team2:'algerie',    date:'3. jul kl. 05:00',  kickoff:'2026-07-03T05:00:00' },
-    13: { team1:'australia',   team2:'egypt',      date:'3. jul kl. 20:00',  kickoff:'2026-07-03T20:00:00' },
-    14: { team1:'argentina',   team2:'capeverde',  date:'4. jul kl. 00:00',  kickoff:'2026-07-04T00:00:00' },
-    15: { team1:'colombia',    team2:'ghana',      date:'4. jul kl. 03:30',  kickoff:'2026-07-04T03:30:00' },
+    0:  { team1:'sydafrika',  team2:'canada',    date:'28. jun kl. 21:00', kickoff:'2026-06-28T19:00:00Z' },
+    1:  { team1:'brasil',     team2:'japan',     date:'29. jun kl. 19:00', kickoff:'2026-06-29T17:00:00Z' },
+    2:  { team1:'tyskland',   team2:'paraguay',  date:'29. jun kl. 22:30', kickoff:'2026-06-29T20:30:00Z' },
+    3:  { team1:'nederland',  team2:'marokko',   date:'30. jun kl. 03:00', kickoff:'2026-06-30T01:00:00Z' },
+    4:  { team1:'elfenbein',  team2:'norge',     date:'30. jun kl. 19:00', kickoff:'2026-06-30T17:00:00Z' },
+    5:  { team1:'frankrike',  team2:'sverige',   date:'30. jun kl. 23:00', kickoff:'2026-06-30T21:00:00Z' },
+    6:  { team1:'mexico',     team2:'ecuador',   date:'1. jul kl. 03:00',  kickoff:'2026-07-01T01:00:00Z' },
+    7:  { team1:'england',    team2:'drkongo',   date:'1. jul kl. 18:00',  kickoff:'2026-07-01T16:00:00Z' },
+    8:  { team1:'belgia',     team2:'senegal',   date:'1. jul kl. 22:00',  kickoff:'2026-07-01T20:00:00Z' },
+    9:  { team1:'usa',        team2:'bosnia',    date:'2. jul kl. 02:00',  kickoff:'2026-07-02T00:00:00Z' },
+    10: { team1:'spania',     team2:'osterrike', date:'2. jul kl. 21:00',  kickoff:'2026-07-02T19:00:00Z' },
+    11: { team1:'portugal',   team2:'kroatia',   date:'3. jul kl. 01:00',  kickoff:'2026-07-02T23:00:00Z' },
+    12: { team1:'sveits',     team2:'algerie',   date:'3. jul kl. 05:00',  kickoff:'2026-07-03T03:00:00Z' },
+    13: { team1:'australia',  team2:'egypt',     date:'3. jul kl. 20:00',  kickoff:'2026-07-03T18:00:00Z' },
+    14: { team1:'argentina',  team2:'capeverde', date:'4. jul kl. 00:00',  kickoff:'2026-07-03T22:00:00Z' },
+    15: { team1:'colombia',   team2:'ghana',     date:'4. jul kl. 03:30',  kickoff:'2026-07-04T01:30:00Z' },
   }
 };
 
@@ -612,7 +612,7 @@ function isMatchLocked(kickoffStr) {
 }
 
 
-const KO_OPEN_DATE = new Date('2026-06-28T00:00:00');
+const KO_OPEN_DATE = new Date('2026-06-28T19:00:00Z'); // Sør-Afrika–Canada 28. jun kl. 21:00 norsk
 const GROUP_DEADLINE = new Date('2026-06-15T00:00:00'); // Første relevante kamp: Sverige 15. juni
 
 const NORWEGIAN_PLAYERS = [
