@@ -380,7 +380,7 @@
           </div>
           <div>
             <div style="font-weight:700;color:var(--lk-teal-dark);margin-bottom:4px">Frist: Gruppespill og bonustips</div>
-            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Alle gruppetips og bonustips må være levert <strong>før første kamp sparkes i gang</strong> – Sverige vs Tunisia 15. juni. Tips levert etter dette teller ikke. Norge spiller første kamp 16. juni.</div>
+            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Alle gruppetips og bonustips må være levert <strong>senest 30 minutter før kampstart</strong>. Første relevante kamp er Sverige vs Tunisia 15. juni kl. 04:00. Tips stenges automatisk og kan ikke endres etter fristen.</div>
           </div>
         </div>
 
@@ -391,7 +391,7 @@
           </div>
           <div>
             <div style="font-weight:700;color:var(--lk-teal-dark);margin-bottom:4px">Sluttspill åpner</div>
-            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Gruppespillet er ferdig og de 32 kvalifiserte lagene er klare. Administrator setter opp kampene, og du kan tippe sluttspillresultater. <strong>Du bør tippe før hver runde starter.</strong></div>
+            <div style="font-size:13px;color:var(--lk-grey-dark);line-height:1.5">Gruppespillet er ferdig og de 32 kvalifiserte lagene er klare. Sluttspilltips <strong>stenges automatisk 30 minutter før hver kamp</strong> — du kan tippe én kamp av gangen helt frem til fristen for den aktuelle kampen.</div>
           </div>
         </div>
 
@@ -460,6 +460,13 @@
           <div class="rule-desc">
             <strong>Beste nordiske lag</strong>
             Du tipper riktig hvilket av Norge og Sverige som kommer lengst i turneringen. Ved likt resultat teller best plassering i gruppen. Må leveres før 15. juni.
+          </div>
+        </li>
+        <li>
+          <div class="rule-pts">—</div>
+          <div class="rule-desc">
+            <strong>Automatisk låsing – 30 minutter før kampstart</strong>
+            Alle kamper låses automatisk <strong>30 minutter før avspark</strong>. Det gjelder både gruppespill og sluttspill. Hver kamp har sin egen frist, så du kan tippe helt frem til 30 min før akkurat den kampen starter. Tips som leveres etter fristen registreres ikke.
           </div>
         </li>
       </ul>
@@ -575,26 +582,36 @@ const KO_ROUNDS = [
 // Alle 16 kampene i 16-delsfinalen (norsk tid)
 const KO_PRESET = {
   r32: {
-    0:  { team1:'sydafrika',   team2:'canada',     date:'28. jun kl. 21:00' },
-    1:  { team1:'brasil',      team2:'japan',      date:'29. jun kl. 19:00' },
-    2:  { team1:'tyskland',    team2:'paraguay',   date:'29. jun kl. 22:30' },
-    3:  { team1:'nederland',   team2:'marokko',    date:'30. jun kl. 03:00' },
-    4:  { team1:'elfenbein',   team2:'norge',      date:'30. jun kl. 19:00' },
-    5:  { team1:'frankrike',   team2:'sverige',    date:'30. jun kl. 23:00' },
-    6:  { team1:'mexico',      team2:'ecuador',    date:'1. jul kl. 03:00'  },
-    7:  { team1:'england',     team2:'drkongo',    date:'1. jul kl. 18:00'  },
-    8:  { team1:'belgia',      team2:'senegal',    date:'1. jul kl. 22:00'  },
-    9:  { team1:'usa',         team2:'bosnia',     date:'2. jul kl. 02:00'  },
-    10: { team1:'spania',      team2:'osterrike',  date:'2. jul kl. 21:00'  },
-    11: { team1:'portugal',    team2:'kroatia',    date:'3. jul kl. 01:00'  },
-    12: { team1:'sveits',      team2:'algerie',    date:'3. jul kl. 05:00'  },
-    13: { team1:'australia',   team2:'egypt',      date:'3. jul kl. 20:00'  },
-    14: { team1:'argentina',   team2:'capeverde',  date:'4. jul kl. 00:00'  },
-    15: { team1:'colombia',    team2:'ghana',      date:'4. jul kl. 03:30'  },
+    0:  { team1:'sydafrika',   team2:'canada',     date:'28. jun kl. 21:00', kickoff:'2026-06-28T21:00:00' },
+    1:  { team1:'brasil',      team2:'japan',      date:'29. jun kl. 19:00', kickoff:'2026-06-29T19:00:00' },
+    2:  { team1:'tyskland',    team2:'paraguay',   date:'29. jun kl. 22:30', kickoff:'2026-06-29T22:30:00' },
+    3:  { team1:'nederland',   team2:'marokko',    date:'30. jun kl. 03:00', kickoff:'2026-06-30T03:00:00' },
+    4:  { team1:'elfenbein',   team2:'norge',      date:'30. jun kl. 19:00', kickoff:'2026-06-30T19:00:00' },
+    5:  { team1:'frankrike',   team2:'sverige',    date:'30. jun kl. 23:00', kickoff:'2026-06-30T23:00:00' },
+    6:  { team1:'mexico',      team2:'ecuador',    date:'1. jul kl. 03:00',  kickoff:'2026-07-01T03:00:00' },
+    7:  { team1:'england',     team2:'drkongo',    date:'1. jul kl. 18:00',  kickoff:'2026-07-01T18:00:00' },
+    8:  { team1:'belgia',      team2:'senegal',    date:'1. jul kl. 22:00',  kickoff:'2026-07-01T22:00:00' },
+    9:  { team1:'usa',         team2:'bosnia',     date:'2. jul kl. 02:00',  kickoff:'2026-07-02T02:00:00' },
+    10: { team1:'spania',      team2:'osterrike',  date:'2. jul kl. 21:00',  kickoff:'2026-07-02T21:00:00' },
+    11: { team1:'portugal',    team2:'kroatia',    date:'3. jul kl. 01:00',  kickoff:'2026-07-03T01:00:00' },
+    12: { team1:'sveits',      team2:'algerie',    date:'3. jul kl. 05:00',  kickoff:'2026-07-03T05:00:00' },
+    13: { team1:'australia',   team2:'egypt',      date:'3. jul kl. 20:00',  kickoff:'2026-07-03T20:00:00' },
+    14: { team1:'argentina',   team2:'capeverde',  date:'4. jul kl. 00:00',  kickoff:'2026-07-04T00:00:00' },
+    15: { team1:'colombia',    team2:'ghana',      date:'4. jul kl. 03:30',  kickoff:'2026-07-04T03:30:00' },
   }
 };
 
-// Sluttspillet åpner 28. juni 2026
+// Steng tips 30 minutter før kampstart
+const LOCK_MINUTES = 30;
+
+function isMatchLocked(kickoffStr) {
+  if (!kickoffStr) return false;
+  const kickoff = new Date(kickoffStr);
+  const lockTime = new Date(kickoff.getTime() - LOCK_MINUTES * 60 * 1000);
+  return new Date() >= lockTime;
+}
+
+
 const KO_OPEN_DATE = new Date('2026-06-28T00:00:00');
 const GROUP_DEADLINE = new Date('2026-06-15T00:00:00'); // Første relevante kamp: Sverige 15. juni
 
@@ -828,7 +845,7 @@ function buildGroupTabs() {
       const pred = preds[m.id] || {};
       const result = results[m.id];
       const isFilled = pred.h !== undefined && pred.a !== undefined;
-      const isLocked = !state.isAdmin && m.kickoff && new Date(m.kickoff) <= now;
+      const isLocked = !state.isAdmin && isMatchLocked(m.kickoff);
       const card = document.createElement('div');
       card.className = 'match-card' + (isFilled ? ' filled' : '') + (isLocked ? ' locked' : '');
       const home = TEAMS[m.home], away = TEAMS[m.away];
@@ -878,7 +895,7 @@ async function saveGroupPredictions() {
   const preds = state.predictions[state.currentPlayer].groups;
   const now = new Date();
   GROUPS.forEach(g => g.matches.forEach(m => {
-    if (m.kickoff && new Date(m.kickoff) <= now) return; // skip locked
+    if (isMatchLocked(m.kickoff)) return; // skip locked
     const h = document.getElementById('m_h_' + m.id)?.value;
     const a = document.getElementById('m_a_' + m.id)?.value;
     if (h !== '' && a !== '') preds[m.id] = { h:parseInt(h), a:parseInt(a) };
@@ -962,32 +979,42 @@ function buildKnockoutBracket() {
       const t1key = adminSlot.team1 || preset.team1 || '';
       const t2key = adminSlot.team2 || preset.team2 || '';
       const matchDate = preset.date || '';
+      const matchKickoff = adminSlot.kickoff || preset.kickoff || '';
       const t1 = TEAMS[t1key];
       const t2 = TEAMS[t2key];
       const t1label = t1 ? `${t1.flag} ${t1.name}` : '– Lag 1 –';
       const t2label = t2 ? `${t2.flag} ${t2.name}` : '– Lag 2 –';
       const teamsSet = !!(t1key && t2key);
+      const koLocked = !state.isAdmin && isMatchLocked(matchKickoff);
 
       // Update label with date if available
       if (matchDate) lbl.textContent = `${round.label} – Kamp ${i+1} · ${matchDate}`;
+      if (koLocked) lbl.style.background = 'var(--lk-grey-dark)';
+
+      const ko = document.createElement('div');
+      ko.className = 'ko-match' + ((slot.score1!==undefined||slot.score2!==undefined) ? ' filled' : '') + (koLocked ? ' locked' : '');
+      ko.style.borderRadius = '0 0 8px 8px';
+
+      const lockedBadge = koLocked ? `<span style="background:#ddd;color:#888;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:6px">🔒</span>` : '';
+
+      const scoreInput = (val, id) => koLocked
+        ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--lk-teal-dark);min-width:32px;text-align:right">${val!==undefined?val:'–'}</span>`
+        : `<input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–"
+            value="${val!==undefined?val:''}" id="${id}"
+            ${!teamsSet?'disabled title="Venter på lagoppsett"':''}
+            oninput="this.closest('.ko-match').classList.add('filled')">`;
 
       ko.innerHTML = `
         <div class="ko-team" style="justify-content:space-between;">
-          <span style="font-weight:700;font-size:14px;flex:1">${t1label}</span>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–"
-            value="${slot.score1!==undefined?slot.score1:''}" id="ko_s1_${round.id}_${i}"
-            ${!teamsSet?'disabled title="Venter på at admin setter lagene"':''}
-            oninput="this.closest('.ko-match').classList.add('filled')">
+          <span style="font-weight:700;font-size:13px;flex:1">${t1label}${lockedBadge}</span>
+          ${scoreInput(slot.score1, `ko_s1_${round.id}_${i}`)}
         </div>
         <div class="ko-divider"></div>
         <div class="ko-team" style="justify-content:space-between;">
-          <span style="font-weight:700;font-size:14px;flex:1">${t2label}</span>
-          <input type="number" class="no-spin ko-score-input" min="0" max="20" placeholder="–"
-            value="${slot.score2!==undefined?slot.score2:''}" id="ko_s2_${round.id}_${i}"
-            ${!teamsSet?'disabled title="Venter på at admin setter lagene"':''}
-            oninput="this.closest('.ko-match').classList.add('filled')">
+          <span style="font-weight:700;font-size:13px;flex:1">${t2label}</span>
+          ${scoreInput(slot.score2, `ko_s2_${round.id}_${i}`)}
         </div>
-        ${!teamsSet ? '<div style="margin-top:8px;font-size:11px;color:var(--lk-grey-mid);text-align:center;">⏳ Venter på lagoppsettet fra admin</div>' : ''}
+        ${!teamsSet && !koLocked ? '<div style="margin-top:6px;font-size:11px;color:var(--lk-grey-mid);text-align:center">⏳ Venter på lagoppsett</div>' : ''}
         ${adminSlot.winner ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ Videre: ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
       `;
       wrapper.appendChild(ko);
