@@ -544,7 +544,11 @@ const TEAMS = {
   jordania: { name:'Jordan', flag:'🇯🇴' },
   nigeria: { name:'Nigeria', flag:'🇳🇬' },
   korea: { name:'Sør-Korea', flag:'🇰🇷' },
-  kuwait: { name:'Kuwait', flag:'🇰🇼' },
+  elfenbein: { name:'Elfenbenskysten', flag:'🇨🇮' },
+  drkongo:   { name:'DR Kongo', flag:'🇨🇩' },
+  osterrike: { name:'Østerrike', flag:'🇦🇹' },
+  algerie:   { name:'Algerie', flag:'🇩🇿' },
+  ghana:     { name:'Ghana', flag:'🇬🇭' },
 };
 
 const GROUPS = [
@@ -561,12 +565,34 @@ const GROUPS = [
 ];
 
 const KO_ROUNDS = [
-  { id:'r32', label:'Sekstendelsfinale', slots:8 },
-  { id:'r16', label:'Åttendelsfinale', slots:4 },
-  { id:'qf', label:'Kvartfinale', slots:2 },
+  { id:'r32', label:'16-delsfinale', slots:16 },
+  { id:'r16', label:'Åttedelsfinale', slots:8 },
+  { id:'qf', label:'Kvartfinale', slots:4 },
   { id:'sf', label:'Semifinale', slots:2 },
   { id:'f', label:'Finale', slots:1 },
 ];
+
+// Alle 16 kampene i 16-delsfinalen (norsk tid)
+const KO_PRESET = {
+  r32: {
+    0:  { team1:'sydafrika',   team2:'canada',     date:'28. jun kl. 21:00' },
+    1:  { team1:'brasil',      team2:'japan',      date:'29. jun kl. 19:00' },
+    2:  { team1:'tyskland',    team2:'paraguay',   date:'29. jun kl. 22:30' },
+    3:  { team1:'nederland',   team2:'marokko',    date:'30. jun kl. 03:00' },
+    4:  { team1:'elfenbein',   team2:'norge',      date:'30. jun kl. 19:00' },
+    5:  { team1:'frankrike',   team2:'sverige',    date:'30. jun kl. 23:00' },
+    6:  { team1:'mexico',      team2:'ecuador',    date:'1. jul kl. 03:00'  },
+    7:  { team1:'england',     team2:'drkongo',    date:'1. jul kl. 18:00'  },
+    8:  { team1:'belgia',      team2:'senegal',    date:'1. jul kl. 22:00'  },
+    9:  { team1:'usa',         team2:'bosnia',     date:'2. jul kl. 02:00'  },
+    10: { team1:'spania',      team2:'osterrike',  date:'2. jul kl. 21:00'  },
+    11: { team1:'portugal',    team2:'kroatia',    date:'3. jul kl. 01:00'  },
+    12: { team1:'sveits',      team2:'algerie',    date:'3. jul kl. 05:00'  },
+    13: { team1:'australia',   team2:'egypt',      date:'3. jul kl. 20:00'  },
+    14: { team1:'argentina',   team2:'capeverde',  date:'4. jul kl. 00:00'  },
+    15: { team1:'colombia',    team2:'ghana',      date:'4. jul kl. 03:30'  },
+  }
+};
 
 // Sluttspillet åpner 28. juni 2026
 const KO_OPEN_DATE = new Date('2026-06-28T00:00:00');
@@ -931,14 +957,19 @@ function buildKnockoutBracket() {
       ko.className = 'ko-match' + (slot.team1 || slot.team2 ? ' filled' : '');
       ko.style.borderRadius = '0 0 8px 8px';
 
-      // Teams set by admin, not user
-      const t1key = adminSlot.team1 || '';
-      const t2key = adminSlot.team2 || '';
+      // Teams: admin override first, then preset, then empty
+      const preset = (KO_PRESET[round.id] || {})[i] || {};
+      const t1key = adminSlot.team1 || preset.team1 || '';
+      const t2key = adminSlot.team2 || preset.team2 || '';
+      const matchDate = preset.date || '';
       const t1 = TEAMS[t1key];
       const t2 = TEAMS[t2key];
-      const t1label = t1 ? `${t1.flag} ${t1.name}` : '– Lag 1 (ikke satt) –';
-      const t2label = t2 ? `${t2.flag} ${t2.name}` : '– Lag 2 (ikke satt) –';
+      const t1label = t1 ? `${t1.flag} ${t1.name}` : '– Lag 1 –';
+      const t2label = t2 ? `${t2.flag} ${t2.name}` : '– Lag 2 –';
       const teamsSet = !!(t1key && t2key);
+
+      // Update label with date if available
+      if (matchDate) lbl.textContent = `${round.label} – Kamp ${i+1} · ${matchDate}`;
 
       ko.innerHTML = `
         <div class="ko-team" style="justify-content:space-between;">
