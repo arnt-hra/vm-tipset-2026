@@ -970,10 +970,6 @@ function buildKnockoutBracket() {
       lbl.textContent = round.slots > 1 ? `${round.label} – Kamp ${i+1}` : round.label;
       wrapper.appendChild(lbl);
 
-      const ko = document.createElement('div');
-      ko.className = 'ko-match' + (slot.team1 || slot.team2 ? ' filled' : '');
-      ko.style.borderRadius = '0 0 8px 8px';
-
       // Teams: admin override first, then preset, then empty
       const preset = (KO_PRESET[round.id] || {})[i] || {};
       const t1key = adminSlot.team1 || preset.team1 || '';
