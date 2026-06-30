@@ -431,14 +431,14 @@
           <div class="rule-pts">5</div>
           <div class="rule-desc">
             <strong>Riktig vinner – sluttspill</strong>
-            Du tipper riktig vinner av et sluttspilloppgjør (høyest score = vinner). Gjelder for alle runder fra sekstendelsfinale til finale.
+            Du tipper resultatet ved fulltid (90 min) – det kan godt bli uavgjort (f.eks. 1–1). Du får poeng om laget du har høyest score på faktisk vinner kampen og går videre, enten det avgjøres i ordinær tid, ekstraomganger eller på straffer. Tipper du uavgjort, gir det ikke poeng for "riktig vinner" siden det ikke finnes uavgjort i sluttspillet til slutt.
           </div>
         </li>
         <li>
           <div class="rule-pts">+2</div>
           <div class="rule-desc">
-            <strong>Nøyaktig riktig score – sluttspill</strong>
-            Treffer du eksakt score i et sluttspilloppgjør får du 2 bonuspoeng ekstra – totalt 7 poeng for den kampen.
+            <strong>Nøyaktig riktig fulltidsresultat – sluttspill</strong>
+            Treffer du eksakt fulltidsresultat (90 min, inkludert hvis det er uavgjort) får du 2 bonuspoeng ekstra – totalt 7 poeng for den kampen.
           </div>
         </li>
         <li>
@@ -1011,7 +1011,8 @@ function buildKnockoutBracket() {
           ${scoreInput(slot.score2, `ko_s2_${round.id}_${i}`)}
         </div>
         ${!teamsSet && !koLocked ? '<div style="margin-top:6px;font-size:11px;color:var(--lk-grey-mid);text-align:center">⏳ Venter på lagoppsett</div>' : ''}
-        ${adminSlot.winner ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ Videre: ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
+        ${adminSlot.fts1!==undefined && adminSlot.fts2!==undefined ? `<div style="margin-top:6px;font-size:11px;color:var(--lk-grey-mid);text-align:center">Fulltid: ${adminSlot.fts1}–${adminSlot.fts2}${adminSlot.fts1===adminSlot.fts2?' (avgjort på straffer)':''}</div>` : ''}
+        ${adminSlot.winner ? `<div style="margin-top:2px;font-size:11px;color:var(--lk-teal);font-weight:700;text-align:center">✅ Videre: ${TEAMS[adminSlot.winner]?.flag||''} ${TEAMS[adminSlot.winner]?.name||adminSlot.winner}</div>` : ''}
       `;
       wrapper.appendChild(ko);
       matchWrap.appendChild(wrapper);
@@ -1108,13 +1109,13 @@ function calcPoints(playerId) {
     for (let i=0; i<round.slots; i++) {
       const a=rA[i], p=rP[i];
       if (!a||!p||!a.winner) continue;
-      // User picks winner by tipping higher score for that team
+      // Bruker tipper fulltidsresultat (kan være uavgjort) - vinneren er hvem som faktisk gikk videre (etter ev. straffer)
       const predWinner = (p.score1!==undefined && p.score2!==undefined)
-        ? (p.score1>p.score2 ? a.team1 : p.score2>p.score1 ? a.team2 : null)
+        ? (p.score1>p.score2 ? a.team1 : p.score2>p.score1 ? a.team2 : null) // null = bruker tippet uavgjort
         : null;
       if (predWinner && predWinner === a.winner) k += 5;
-      // Exact score bonus
-      if (p.score1===a.score1 && p.score2===a.score2) k += 2;
+      // Bonus: traff eksakt fulltidsresultat (kan være uavgjort)
+      if (a.fts1!==undefined && a.fts2!==undefined && p.score1===a.fts1 && p.score2===a.fts2) k += 2;
     }
   });
   const bP = pred.bonus||{}, aB = state.adminBonus||{};
@@ -1271,7 +1272,14 @@ function renderAdminSection() {
           <select class="admin-select" id="akt2_${round.id}_${i}"><option value="">– Velg lag –</option>${opts2}</select>
         </div>
         <div class="admin-result-row">
-          <span class="admin-label">Vinner (fasit)</span>
+          <span class="admin-label">Fulltidsresultat (90 min)</span>
+          <input class="admin-input" type="number" min="0" max="20" value="${slot.fts1!==undefined?slot.fts1:''}" id="akfts1_${round.id}_${i}" placeholder="–" style="width:44px">
+          <span style="font-weight:700;color:var(--lk-grey-mid)">–</span>
+          <input class="admin-input" type="number" min="0" max="20" value="${slot.fts2!==undefined?slot.fts2:''}" id="akfts2_${round.id}_${i}" placeholder="–" style="width:44px">
+        </div>
+        <div style="font-size:10px;color:var(--lk-grey-mid);margin:-4px 0 8px 0;padding-left:2px;">Kan være uavgjort – avgjøres ev. med straffer/ekstraomg.</div>
+        <div class="admin-result-row">
+          <span class="admin-label">Vinner – går videre (etter ev. straffer)</span>
           <select class="admin-select" id="akw_${round.id}_${i}"><option value="">– Vinner –</option>${winOpts}</select>
         </div>
       </div>`;
@@ -1404,7 +1412,11 @@ async function saveAdminKo() {
       const team1=document.getElementById(`akt1_${round.id}_${i}`)?.value||'';
       const team2=document.getElementById(`akt2_${round.id}_${i}`)?.value||'';
       const winner=document.getElementById(`akw_${round.id}_${i}`)?.value||'';
-      state.adminKo[round.id][i]={...(state.adminKo[round.id][i]||{}), team1, team2, winner};
+      const fts1v=document.getElementById(`akfts1_${round.id}_${i}`)?.value;
+      const fts2v=document.getElementById(`akfts2_${round.id}_${i}`)?.value;
+      const fts1 = fts1v!==''&&fts1v!==undefined ? parseInt(fts1v) : undefined;
+      const fts2 = fts2v!==''&&fts2v!==undefined ? parseInt(fts2v) : undefined;
+      state.adminKo[round.id][i]={...(state.adminKo[round.id][i]||{}), team1, team2, winner, fts1, fts2};
     }
   });
   saveLocalState();
