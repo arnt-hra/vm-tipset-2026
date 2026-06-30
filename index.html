@@ -430,8 +430,8 @@
         <li>
           <div class="rule-pts">5</div>
           <div class="rule-desc">
-            <strong>Riktig vinner – sluttspill</strong>
-            Du tipper resultatet ved fulltid (90 min) – det kan godt bli uavgjort (f.eks. 1–1). Du får poeng om laget du har høyest score på faktisk vinner kampen og går videre, enten det avgjøres i ordinær tid, ekstraomganger eller på straffer. Tipper du uavgjort, gir det ikke poeng for "riktig vinner" siden det ikke finnes uavgjort i sluttspillet til slutt.
+            <strong>Riktig utfall ved fulltid – sluttspill</strong>
+            Akkurat som i gruppespillet tipper du resultatet ved fulltid (90 min) – det kan godt bli uavgjort, f.eks. 1–1. Du får poeng om du har riktig utfall: seier, uavgjort eller tap. Hva som skjer videre på straffer eller ekstraomganger påvirker ikke poengene.
           </div>
         </li>
         <li>
@@ -1108,14 +1108,14 @@ function calcPoints(playerId) {
     const rA = state.adminKo[round.id] || {}, rP = pred.knockout[round.id] || {};
     for (let i=0; i<round.slots; i++) {
       const a=rA[i], p=rP[i];
-      if (!a||!p||!a.winner) continue;
-      // Bruker tipper fulltidsresultat (kan være uavgjort) - vinneren er hvem som faktisk gikk videre (etter ev. straffer)
-      const predWinner = (p.score1!==undefined && p.score2!==undefined)
-        ? (p.score1>p.score2 ? a.team1 : p.score2>p.score1 ? a.team2 : null) // null = bruker tippet uavgjort
-        : null;
-      if (predWinner && predWinner === a.winner) k += 5;
-      // Bonus: traff eksakt fulltidsresultat (kan være uavgjort)
-      if (a.fts1!==undefined && a.fts2!==undefined && p.score1===a.fts1 && p.score2===a.fts2) k += 2;
+      if (!a || !p || a.fts1===undefined || a.fts2===undefined) continue;
+      if (p.score1===undefined || p.score2===undefined) continue;
+      // Samme logikk som gruppespillet: riktig utfall ved fulltid (seier/uavgjort/tap)
+      const pR = p.score1>p.score2 ? 'H' : p.score1<p.score2 ? 'A' : 'D';
+      const rR = a.fts1>a.fts2 ? 'H' : a.fts1<a.fts2 ? 'A' : 'D';
+      if (pR === rR) k += 5;
+      // Bonus: eksakt riktig fulltidsresultat
+      if (p.score1===a.fts1 && p.score2===a.fts2) k += 2;
     }
   });
   const bP = pred.bonus||{}, aB = state.adminBonus||{};
