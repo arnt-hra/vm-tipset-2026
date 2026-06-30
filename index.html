@@ -1241,23 +1241,33 @@ function renderAdminSection() {
     html += `<div class="save-bar"><button class="btn-save" onclick="saveAdminGroup('${g.id}')">💾 Lagre ${g.name}</button></div></div>`;
   });
 
-  html += `<div class="card"><div class="card-title"><span class="icon">🏆</span> Sluttspill – Sett lag og vinnere</div>
-    <p style="font-size:12px;color:var(--lk-grey-mid);margin-bottom:14px">Sett lagene for hvert oppgjør når gruppespillet er ferdig. Deltakerne tipper resultater basert på lagene du setter her.</p>`;
+  html += `<div class="card"><div class="card-title"><span class="icon">🏆</span> Sluttspill – Sett resultater og vinnere</div>
+    <p style="font-size:12px;color:var(--lk-grey-mid);margin-bottom:14px">Lagene for kjente oppgjør er allerede forhåndsutfylt. Du velger bare hvem som vinner (går videre) når kampen er spilt. For kamper uten kjente lag ennå, velg lagene selv når de er klare.</p>`;
   KO_ROUNDS.forEach(round => {
     html += `<div class="admin-section"><div class="admin-section-title">${round.label}</div>`;
     for (let i=0; i<round.slots; i++) {
       const slot=(state.adminKo[round.id]||{})[i]||{};
-      const opts1=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.team1===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
-      const opts2=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.team2===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
-      const winOpts=TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.winner===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      const preset=(KO_PRESET[round.id]||{})[i]||{};
+      const presetT1 = preset.team1 ? TEAMS[preset.team1] : null;
+      const presetT2 = preset.team2 ? TEAMS[preset.team2] : null;
+
+      const opts1=TEAM_LIST.map(t=>`<option value="${t.key}" ${(slot.team1||preset.team1)===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      const opts2=TEAM_LIST.map(t=>`<option value="${t.key}" ${(slot.team2||preset.team2)===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+      const winnerKeys = [slot.team1||preset.team1, slot.team2||preset.team2].filter(Boolean);
+      const winOpts = winnerKeys.length
+        ? winnerKeys.map(k=>`<option value="${k}" ${slot.winner===k?'selected':''}>${TEAMS[k]?.flag||''} ${TEAMS[k]?.name||k}</option>`).join('')
+        : TEAM_LIST.map(t=>`<option value="${t.key}" ${slot.winner===t.key?'selected':''}>${t.flag} ${t.name}</option>`).join('');
+
+      const dateLabel = preset.date ? `<span style="color:var(--lk-grey-mid);font-weight:500;font-size:11px;margin-left:6px">· ${preset.date}</span>` : '';
+
       html += `<div style="background:#fff;border:1.5px solid var(--lk-grey-light);border-radius:8px;padding:12px;margin-bottom:10px;">
-        <div style="font-size:12px;font-weight:700;color:var(--lk-teal-dark);margin-bottom:8px;letter-spacing:.5px">KAMP ${i+1}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--lk-teal-dark);margin-bottom:8px;letter-spacing:.5px">KAMP ${i+1}${dateLabel}</div>
         <div class="admin-result-row">
-          <span class="admin-label">Lag 1</span>
+          <span class="admin-label">Lag 1${presetT1?` <span style="color:var(--lk-teal);font-weight:600">(${presetT1.flag} ${presetT1.name})</span>`:''}</span>
           <select class="admin-select" id="akt1_${round.id}_${i}"><option value="">– Velg lag –</option>${opts1}</select>
         </div>
         <div class="admin-result-row">
-          <span class="admin-label">Lag 2</span>
+          <span class="admin-label">Lag 2${presetT2?` <span style="color:var(--lk-teal);font-weight:600">(${presetT2.flag} ${presetT2.name})</span>`:''}</span>
           <select class="admin-select" id="akt2_${round.id}_${i}"><option value="">– Velg lag –</option>${opts2}</select>
         </div>
         <div class="admin-result-row">
